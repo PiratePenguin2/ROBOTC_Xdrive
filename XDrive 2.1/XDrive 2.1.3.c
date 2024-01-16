@@ -41,22 +41,35 @@ float smoothSpeeds[4] ={
 /*----------------*\
 |*		FUNCTIONS		*|
 \*----------------*/
+
 		float lerp(float a, float b, float weight)	//Acceleration equation
 		{
 			return a * (1 - weight) + b*weight;
 		}
 
+
+	void convertForTargetSpeed()
+	{
+		for (int i = 0; i < 4; i++)
+		{
+			targetSpeeds[i] = 50;	//The target speed is a value between 0 and 1 representing the percent
+		}
+	}
+
 	void convertAndOutputSmoothSpeed()
 	{
 		for (int i = 0; i < 4; i++)
 		{
-			smoothSpeeds[i] = lerp(smoothSpeeds[i], 50, speedSmoothing);	//Find the speed with acceleration
+			smoothSpeeds[i] = lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
 			motor[motorName[i]] = smoothSpeeds[i];	//Output to motors
 		}
 	}
 
 void calculateAll()
 {
+
+	convertForTargetSpeed();
+
 	convertAndOutputSmoothSpeed();
 }
 
