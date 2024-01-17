@@ -18,22 +18,11 @@
 \*----------------*/
 
 const float tps = 10;
-const float speedSmoothing = 0.25;
 const float tol = 10;
-const float botMaxSpeed = 127;
+//const float speedSmoothing = 0.25;
 
 bool eStopState = false;
 
-//Added
-float rotateMag = 0.0;
-
-//Convert
-float percent[4] ={
-	0.0, 0.0, 0.0, 0.0
-};
-float powerMult[4] ={
-	1.75, 1.0, 1.0, 1.0
-};
 
 //Speeds
 float targetSpeeds[4] ={
@@ -49,7 +38,6 @@ float smoothSpeeds[4] ={
 |*		FUNCTIONS		*|
 \*----------------*/
 
-
 				float lerp(float a, float b, float weight)	//Acceleration equation
 				{
 					return a * (1 - weight) + b*weight;
@@ -61,59 +49,59 @@ float smoothSpeeds[4] ={
 					motor[SW] = smoothSpeeds[2];
 					motor[NW] = smoothSpeeds[3];
 				}
-				void determineRot()
-				{
-					if (vexRT[Ch1] <= tol && vexRT[Ch1] >= -tol)
-					{
-						rotateMag = 0;
-					}
-					else
-					{
-						rotateMag = vexRT[Ch1]; //Ch1 Percent
-					}
-				}//For addLatRot
 
-
-		void addLatRot()
-		{
-			for (int i = 0; i < 4; i++)
-			{
-				percent[i] = (/*lateralMag[i] +*/ rotateMag) / 127;	//The percent speed each motor should travel at, between 200% and -200%
-			}
-		}
-		void convertForTargetSpeed()
-		{
-			float denom = 1.00;		//Percents are out of 100% by default
-			for (int i = 0; i < 4; i++)
-			{
-				percent[i] = percent[i] * powerMult[i];	//Apply the multiplier for fast/slow motors
-				if ( abs(percent[i]) > denom)	//if the percent is greater than the denominator, yielding more than 100%
+				float calcX()
 				{
-					denom = abs(percent[i]);	//make the denominator equal to the new percent, so no value is more than 100%
+					float x = vexRT[Ch4];
+					if (x < tol && x > -tol)
+					{
+						x = 0;
+					}
+					return x;
 				}
-			}
-			for (int i = 0; i < 4; i++)
-			{
-				targetSpeeds[i] = (percent[i] / denom) * botMaxSpeed;	//The target speed is a value between 0 and 1 representing the percent
-			}																												//times the max speed the bot should ever travel at
+				float calcY()
+				{
+					float y = vexRT[Ch3];
+					if (y < tol && y > -tol)
+					{
+						y = 0;
+					}
+					return y;
+				}
+				float calcRot()
+				{
+					float rot = vexRT[Ch1];
+					if (rot < tol && rot > -tol)
+					{
+						rot = 0;
+					}
+					return rot;
+				}
+
+		void addTar(float x, float y, float rot)
+		{
+			targetSpeeds[0] = -y + x + rot;
+			targetSpeeds[1] =  y - x + rot;
+			targetSpeeds[2] =  y + x + rot;
+			targetSpeeds[3] = -y - x + rot;
 		}
+
 		void convertAndOutputSmoothSpeed()
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				smoothSpeeds[i] = lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
+				smoothSpeeds[i] = targetSpeeds[i]; //lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
 			}
 			updateMotors();
 		}
 
-
 void calculateAll()
 {
-	determineRot();
+	float xTar = calcX();
+	float yTar = calcY();
+	float rotTar = calcRot();
 
-	addLatRot();
-
-	convertForTargetSpeed();
+	addTar(xTar, yTar, rotTar);
 
 	convertAndOutputSmoothSpeed();
 }
@@ -153,14 +141,7 @@ task main()
 				{
 					calculateAll();
 
-					/*if (hybernate)
-					{
-						wait1Msec(1000 / 2); //2 ticks per second
-					}
-					else
-					{*/
-						wait1Msec(1000 / tps);	//Msec per tick, inverse of ticks per second
-					//}
+					wait1Msec(1000 / tps);	//Msec per tick, inverse of ticks per second
 				}
 				else
 				{

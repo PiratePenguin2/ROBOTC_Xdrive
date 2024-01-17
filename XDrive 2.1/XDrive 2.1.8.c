@@ -18,13 +18,15 @@
 \*----------------*/
 
 const float tps = 10;
-const float speedSmoothing = 0.25;
+//const float speedSmoothing = 0.25;
 const float tol = 10;
 const float botMaxSpeed = 127;
+const float motorAngle[4] = {135, -135, -45, 45};
 
 bool eStopState = false;
 
 //Added
+float lateralMag[4] = {0.0, 0.0, 0.0, 0.0};
 float rotateMag = 0.0;
 
 //Convert
@@ -50,16 +52,92 @@ float smoothSpeeds[4] ={
 \*----------------*/
 
 
-				float lerp(float a, float b, float weight)	//Acceleration equation
+				/*float lerp(float a, float b, float weight)	//Acceleration equation
 				{
 					return a * (1 - weight) + b*weight;
-				}
+				}*/
 				void updateMotors()
 				{
 					motor[NE] = smoothSpeeds[0];
 					motor[SE] = smoothSpeeds[1];
 					motor[SW] = smoothSpeeds[2];
 					motor[NW] = smoothSpeeds[3];
+				}
+																		//For LeftJoyDir
+									float pythag(float a, float b)
+									{
+										float c = sqrt( (a*a) + (b*b) );
+										if (c < tol && c > -tol)
+										{
+											return 0;
+										}
+										else
+										{
+											return c;
+										}
+									}
+									float arcTangent(float adj, float opp)
+									{
+										if (adj == 0)
+										{
+											adj = 0.01;
+										}
+										float degree = atan(opp / adj);
+
+										if (degree < tol && degree > -tol)	//Tolerance for drift
+										{
+											degree = 0;
+										}
+
+										if 			(!(abs(adj) == adj) && abs(opp) != opp)	//Quad 2, -adj +opp
+										{
+											degree = -degree;
+										}
+										else if (!(abs(adj) == adj) && abs(opp) != -opp)	//Quad 3, -adj -opp
+										{
+											degree = -degree - 90;
+										}
+										else if (abs(adj) == adj 	&& abs(opp) != -opp)	//Quad 4, +adj -opp
+										{
+											degree += 90;
+										}
+
+										return degree;	//Adjust for quadrents
+									}
+									float cosine(float hyp, float degree)
+									{
+										float adj = hyp * cos(degree); //Lateral movement speed is the bot's lateralMag times cosine of the lateralDir
+										/*if (abs(degree) != degree)
+										{
+											adj *= -1;	//Flip to negative
+										}*/
+										if (adj < tol && adj > -tol)
+										{
+											adj = 0;	//Round to zero
+										}
+										return adj;
+									}//For LeftJoyDir
+
+							//For determineLat
+							float leftJoyDir()
+							{
+								return arcTangent(vexRT[Ch3], vexRT[Ch4]);
+							}
+							float leftJoyMag()
+							{
+									return pythag(vexRT[Ch3], vexRT[Ch4]);
+							}//For determineLat
+
+				//For addLatRot
+				void determineLat()
+				{
+					float latTargetDir = (leftJoyDir());	//Get left joystick direction & magnitude
+					float latTargetMag = (leftJoyMag());
+
+					for (int i = 0; i < 4; i++)
+					{
+						lateralMag[i] = cosine(latTargetMag, abs(motorAngle[i] - latTargetDir) );	//Cosine of magnitude and degree
+					}
 				}
 				void determineRot()
 				{
@@ -78,7 +156,7 @@ float smoothSpeeds[4] ={
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				percent[i] = (/*lateralMag[i] +*/ rotateMag) / 127;	//The percent speed each motor should travel at, between 200% and -200%
+				percent[i] = (lateralMag[i] /*(+ rotateMag*/) / 127;	//The percent speed each motor should travel at, between 200% and -200%
 			}
 		}
 		void convertForTargetSpeed()
@@ -101,7 +179,7 @@ float smoothSpeeds[4] ={
 		{
 			for (int i = 0; i < 4; i++)
 			{
-				smoothSpeeds[i] = lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
+				smoothSpeeds[i] = targetSpeeds[i]; //lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
 			}
 			updateMotors();
 		}
@@ -109,6 +187,7 @@ float smoothSpeeds[4] ={
 
 void calculateAll()
 {
+	determineLat();
 	determineRot();
 
 	addLatRot();
