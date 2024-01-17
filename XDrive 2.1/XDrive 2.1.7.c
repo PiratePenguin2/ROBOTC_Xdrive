@@ -19,8 +19,21 @@
 
 const float tps = 10;
 const float speedSmoothing = 0.25;
+const float tol = 10;
+const float botMaxSpeed = 127;
 
 bool eStopState = false;
+
+//Added
+float rotateMag = 0.0;
+
+//Convert
+float percent[4] ={
+	0.0, 0.0, 0.0, 0.0
+};
+float powerMult[4] ={
+	2, 1.0, 1.0, 1.0
+};
 
 //Speeds
 float targetSpeeds[4] ={
@@ -35,38 +48,71 @@ float smoothSpeeds[4] ={
 /*----------------*\
 |*		FUNCTIONS		*|
 \*----------------*/
-		float lerp(float a, float b, float weight)	//Acceleration equation
+
+
+				float lerp(float a, float b, float weight)	//Acceleration equation
+				{
+					return a * (1 - weight) + b*weight;
+				}
+				void updateMotors()
+				{
+					motor[NE] = smoothSpeeds[0];
+					motor[SE] = smoothSpeeds[1];
+					motor[SW] = smoothSpeeds[2];
+					motor[NW] = smoothSpeeds[3];
+				}
+				void determineRot()
+				{
+					if (vexRT[Ch1] <= tol && vexRT[Ch1] >= -tol)
+					{
+						rotateMag = 0;
+					}
+					else
+					{
+						rotateMag = vexRT[Ch1]; //Ch1 Percent
+					}
+				}//For addLatRot
+
+
+		void addLatRot()
 		{
-			return a * (1 - weight) + b*weight;
+			for (int i = 0; i < 4; i++)
+			{
+				percent[i] = (/*lateralMag[i] +*/ rotateMag) / 127;	//The percent speed each motor should travel at, between 200% and -200%
+			}
+		}
+		void convertForTargetSpeed()
+		{
+			float denom = 1.00;		//Percents are out of 100% by default
+			for (int i = 0; i < 4; i++)
+			{
+				percent[i] = percent[i] * powerMult[i];	//Apply the multiplier for fast/slow motors
+				if ( abs(percent[i]) > denom)	//if the percent is greater than the denominator, yielding more than 100%
+				{
+					denom = abs(percent[i]);	//make the denominator equal to the new percent, so no value is more than 100%
+				}
+			}
+			for (int i = 0; i < 4; i++)
+			{
+				targetSpeeds[i] = (percent[i] / denom) * botMaxSpeed;	//The target speed is a value between 0 and 1 representing the percent
+			}																												//times the max speed the bot should ever travel at
+		}
+		void convertAndOutputSmoothSpeed()
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				smoothSpeeds[i] = lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
+			}
+			updateMotors();
 		}
 
-		void updateMotors()
-		{
-			motor[NE] = smoothSpeeds[0];
-			motor[SE] = smoothSpeeds[1];
-			motor[SW] = smoothSpeeds[2];
-			motor[NW] = smoothSpeeds[3];
-		}
-
-	void convertForTargetSpeed()	//string motorName, float percent, float powerMult, float botMaxSpeed
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			targetSpeeds[i] = vexRT[Ch1];	//The target speed is a value between 0 and 1 representing the percent
-		}																//times the max speed the bot should ever travel at
-	}
-
-	void convertAndOutputSmoothSpeed()
-	{
-		for (int i = 0; i < 4; i++)
-		{
-			smoothSpeeds[i] = lerp(smoothSpeeds[i], targetSpeeds[i], speedSmoothing);	//Find the speed with acceleration
-		}
-		updateMotors();
-	}
 
 void calculateAll()
 {
+	determineRot();
+
+	addLatRot();
+
 	convertForTargetSpeed();
 
 	convertAndOutputSmoothSpeed();

@@ -19,24 +19,21 @@
 
 const float tps = 10;
 
-//Convert
-string motorName[4] ={
-	"NE",
-	"SE",
-	"SW",
-	"NW",
-};
 
 /*----------------*\
 |*		FUNCTIONS		*|
 \*----------------*/
+		void updateMotors()
+		{
+			motor[NE] = 50;
+			motor[SE] = 50;
+			motor[SW] = 50;
+			motor[NW] = 50;
+		}
 
 	void convertAndOutputSmoothSpeed()
 	{
-		for (int i = 0; i < 4; i++)
-		{
-			motor[motorName[i]] = 50;	//Output to motors
-		}
+		updateMotors();
 	}
 
 void calculateAll()

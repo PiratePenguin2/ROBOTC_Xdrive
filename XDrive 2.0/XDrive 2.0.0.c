@@ -147,7 +147,7 @@ float lerp(float a, float b, float weight)	//Acceleration equation
 		}
 		else
 		{
-			rotateMag = vexRT[Ch1];
+			rotateMag = vexRT[Ch1] / 127; //Ch1 Percent
 		}
 	}//For addLatRot
 

@@ -18,9 +18,13 @@
 \*----------------*/
 
 const float tps = 10;
-const float speedSmoothing = 0.3;
+const float speedSmoothing = 0.25;
+const float tol = 10;
 
-//Convert
+bool eStopState = false;
+
+//Added
+float rotateMag = 0.0;
 
 //Speeds
 float targetSpeeds[4] ={
@@ -35,11 +39,12 @@ float smoothSpeeds[4] ={
 /*----------------*\
 |*		FUNCTIONS		*|
 \*----------------*/
+
+
 		float lerp(float a, float b, float weight)	//Acceleration equation
 		{
 			return a * (1 - weight) + b*weight;
 		}
-
 		void updateMotors()
 		{
 			motor[NE] = smoothSpeeds[0];
@@ -47,15 +52,27 @@ float smoothSpeeds[4] ={
 			motor[SW] = smoothSpeeds[2];
 			motor[NW] = smoothSpeeds[3];
 		}
+		void determineRot()
+		{
+			if (vexRT[Ch1] <= tol && vexRT[Ch1] >= -tol)
+			{
+				rotateMag = 0;
+			}
+			else
+			{
+				rotateMag = vexRT[Ch1];
+			}
+		}//For addLatRot
+
 
 	void convertForTargetSpeed()	//string motorName, float percent, float powerMult, float botMaxSpeed
 	{
+		determineRot();
 		for (int i = 0; i < 4; i++)
 		{
-			targetSpeeds[i] = vexRT[Ch1];	//The target speed is a value between 0 and 1 representing the percent
+			targetSpeeds[i] = rotateMag;	//The target speed is a value between 0 and 1 representing the percent
 		}																//times the max speed the bot should ever travel at
 	}
-
 	void convertAndOutputSmoothSpeed()
 	{
 		for (int i = 0; i < 4; i++)
@@ -65,12 +82,22 @@ float smoothSpeeds[4] ={
 		updateMotors();
 	}
 
+
 void calculateAll()
 {
 	convertForTargetSpeed();
 
 	convertAndOutputSmoothSpeed();
 }
+void stopAll()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		smoothSpeeds[i] = 0; //Stop all motors instantly
+	}
+	updateMotors();
+}
+
 
 /*----------------*\
 |*			Main			*|
@@ -80,9 +107,41 @@ task main()
 {
 	while	(true)
 	{
-		calculateAll();
+		if (vexRT[Btn5U] && vexRT[Btn6U])
+		{
+			eStopState = false;
+			//ledEnable = 3;	//ON
+			//ledESTOP = 1;	//Slow Blink
+			while (!eStopState)
+			{
+				if (SensorValue(ESTOPbtn) == 1 || vexRT[Btn5D] == 1 || vexRT[Btn6D] == 1 || vexRT[Btn7D] == 1 || vexRT[Btn8D] == 1)
+				{
+					eStopState = true;
+					//ledESTOP = 3;	//ON
+					//ledEnable = 0;	//OFF
+				}
 
-		wait1Msec(1000 / tps);	//Msec per tick, inverse of ticks per second
-	}
+				if (!eStopState)
+				{
+					calculateAll();
 
-}
+					/*if (hybernate)
+					{
+						wait1Msec(1000 / 2); //2 ticks per second
+					}
+					else
+					{*/
+						wait1Msec(1000 / tps);	//Msec per tick, inverse of ticks per second
+					//}
+				}
+				else
+				{
+					stopAll();
+				}
+
+			}	//While Enable
+
+		}	//Check for Enable
+
+	}	//While Wait For Enable
+}	//Task Main

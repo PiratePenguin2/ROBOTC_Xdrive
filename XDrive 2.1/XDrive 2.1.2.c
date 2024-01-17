@@ -18,7 +18,7 @@
 \*----------------*/
 
 const float tps = 10;
-const float speedSmoothing = 0.001;
+const float speedSmoothing = 1;
 
 //Convert
 string motorName[4] ={
@@ -46,13 +46,22 @@ float smoothSpeeds[4] ={
 			return a * (1 - weight) + b*weight;
 		}
 
+		void updateMotors()
+		{
+			motor[NE] = smoothSpeeds[0];
+			motor[SE] = smoothSpeeds[1];
+			motor[SW] = smoothSpeeds[2];
+			motor[NW] = smoothSpeeds[3];
+		}
+
+
 	void convertAndOutputSmoothSpeed()
 	{
 		for (int i = 0; i < 4; i++)
 		{
 			smoothSpeeds[i] = lerp(smoothSpeeds[i], 50, speedSmoothing);	//Find the speed with acceleration
-			motor[motorName[i]] = smoothSpeeds[i];	//Output to motors
 		}
+		updateMotors();
 	}
 
 void calculateAll()
