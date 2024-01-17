@@ -19,10 +19,18 @@
 
 const float tps = 10;
 const float tol = 10;
+const float botMaxSpeed = 127;
 const float speedSmoothing = 0.25;
 
 bool eStopState = false;
 
+//Convert
+float percent[4] ={
+	0.0, 0.0, 0.0, 0.0
+};
+float powerMult[4] ={
+	1.75, 1.0, 1.0, 1.0
+};
 
 //Speeds
 float targetSpeeds[4] ={
@@ -80,10 +88,27 @@ float smoothSpeeds[4] ={
 
 		void addTar(float x, float y, float rot)
 		{
-			targetSpeeds[0] = -y + x + rot;
-			targetSpeeds[1] =  y - x + rot;
-			targetSpeeds[2] =  y + x + rot;
-			targetSpeeds[3] = -y - x + rot;
+			percent[0] = (-y + x + rot) / 100;
+			percent[1] = ( y - x + rot) / 100;
+			percent[2] = ( y + x + rot) / 100;
+			percent[3] = (-y - x + rot) / 100;
+		}
+
+		void convertForTargetSpeed()
+		{
+			float denom = 1.00;		//Percents are out of 100% by default
+			for (int i = 0; i < 4; i++)
+			{
+				percent[i] = percent[i] * powerMult[i];	//Apply the multiplier for fast/slow motors
+				if ( abs(percent[i]) > denom)	//if the percent is greater than the denominator, yielding more than 100%
+				{
+					denom = abs(percent[i]);	//make the denominator equal to the new percent, so no value is more than 100%
+				}
+			}
+			for (int i = 0; i < 4; i++)
+			{
+				targetSpeeds[i] = (percent[i] / denom) * botMaxSpeed;	//The target speed is a value between 0 and 1 representing the percent
+			}																												//times the max speed the bot should ever travel at
 		}
 
 		void convertAndOutputSmoothSpeed()
@@ -103,6 +128,7 @@ void calculateAll()
 
 	addTar(xTar, yTar, rotTar);
 
+	convertForTargetSpeed();
 	convertAndOutputSmoothSpeed();
 }
 void stopAll()
