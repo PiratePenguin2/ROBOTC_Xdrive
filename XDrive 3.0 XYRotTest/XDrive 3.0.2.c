@@ -18,9 +18,9 @@
 \*----------------*/
 
 const float tps = 10;
-const float tol = 10;
+const float tol = 40;
 const float botMaxSpeed = 127;
-const float speedSmoothing = 0.25;
+const float speedSmoothing = 0.6;
 
 bool eStopState = false;
 
@@ -88,15 +88,15 @@ float smoothSpeeds[4] ={
 
 		void addTar(float x, float y, float rot)
 		{
-			percent[0] = (-y + x + rot) / 100;
-			percent[1] = ( y - x + rot) / 100;
-			percent[2] = ( y + x + rot) / 100;
-			percent[3] = (-y - x + rot) / 100;
+			percent[0] = ( 1*(-y + x) +  2*(rot) );
+			percent[1] = ( 1*(-y - x) +  2*(rot) );
+			percent[2] = ( 1*( y - x) +  2*(rot) );
+			percent[3] = ( 1*( y + x) +  2*(rot) );
 		}
 
 		void convertForTargetSpeed()
 		{
-			float denom = 1.00;		//Percents are out of 100% by default
+			float denom = 100;		//Percents are out of 100% by default
 			for (int i = 0; i < 4; i++)
 			{
 				percent[i] = percent[i] * powerMult[i];	//Apply the multiplier for fast/slow motors

@@ -18,7 +18,7 @@
 \*----------------*/
 
 const float tps = 10;
-const float tol = 10;
+const float tol = 20;
 
 bool eStopState = false;
 
@@ -50,7 +50,7 @@ float smoothSpeeds[4] ={
 					float x = vexRT[Ch4];
 					if (x < tol && x > -tol)
 					{
-						x = 0;
+						x = 0.0;
 					}
 					return x;
 				}
@@ -59,7 +59,7 @@ float smoothSpeeds[4] ={
 					float y = vexRT[Ch3];
 					if (y < tol && y > -tol)
 					{
-						y = 0;
+						y = 0.0;
 					}
 					return y;
 				}
@@ -68,18 +68,20 @@ float smoothSpeeds[4] ={
 					float rot = vexRT[Ch1];
 					if (rot < tol && rot > -tol)
 					{
-						rot = 0;
+						rot = 0.0;
 					}
 					return rot;
 				}
 
 		void addTar(float x, float y, float rot)
 		{
-			targetSpeeds[0] = -y + x + rot;
-			targetSpeeds[1] =  y - x + rot;
-			targetSpeeds[2] =  y + x + rot;
-			targetSpeeds[3] = -y - x + rot;
+			targetSpeeds[0] = (-y + x + rot) / 3;
+			targetSpeeds[1] = (-y - x + rot) / 3;
+			targetSpeeds[2] = ( y - x + rot) / 3;
+			targetSpeeds[3] = ( y + x + rot) / 3;
 		}
+
+
 
 		void convertAndOutputSmoothSpeed()
 		{
@@ -92,11 +94,11 @@ float smoothSpeeds[4] ={
 
 void calculateAll()
 {
-	float xTar = calcX();
-	float yTar = calcY();
-	float rotTar = calcRot();
+	//float xTar = calcX();
+	//float yTar = calcY();
+	//float rotTar = calcRot();
 
-	addTar(xTar, yTar, rotTar);
+	addTar( calcX(), calcY(), calcRot() );
 
 	convertAndOutputSmoothSpeed();
 }
